@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # This file is part of yaml-enc.
 # Copyright (C) 2015  Chris Boot <bootc@bootc.net>
 #
