@@ -17,16 +17,12 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import argparse
 import os
 import sys
 import yaml
+import yaml_enc
 
 from collections import ChainMap, OrderedDict
-
-
-DEFAULT_DIR = '/etc/puppet/yaml-enc'
-NODES_SUBDIR = 'nodes'
 
 
 class Node(object):
@@ -40,13 +36,13 @@ class Node(object):
     @classmethod
     def from_yaml(cls, base_dir, fqdn, Loader=yaml.SafeLoader):
         node = cls._from_yaml_include(
-            base_dir, os.path.join(NODES_SUBDIR, fqdn), Loader)
+            base_dir, os.path.join(yaml_enc.NODES_SUBDIR, fqdn), Loader)
         node.fqdn = fqdn
         return node
 
     @classmethod
     def all_nodes(cls, base_dir, Loader=yaml.SafeLoader):  # generator
-        nodes_dir = os.path.join(base_dir, NODES_SUBDIR)
+        nodes_dir = os.path.join(base_dir, yaml_enc.NODES_SUBDIR)
 
         for (_, _, filenames) in os.walk(nodes_dir):
             for fqdn in (x[:-5] for x in filenames if x.endswith('.yaml')):
@@ -142,33 +138,3 @@ class Node(object):
 
 # Teach PyYAML how to represent Node objects
 Node.add_yaml_representer()
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description='YAML-based Puppet External Node Classifier (ENC)')
-    parser.add_argument('FQDN', nargs='?',
-                        help='hostname of the node to classify')
-    parser.add_argument('--base', '-b', default=DEFAULT_DIR,
-                        help='base directory for node YAML files')
-    args = parser.parse_args()
-
-    # Check that the base directory exists and is a directory
-    if not os.path.isdir(args.base):
-        print("E: {} does not exist or is not a directory".format(args.base),
-              file=sys.stderr)
-        sys.exit(1)
-
-    try:
-        if args.FQDN is not None:
-            data = Node.from_yaml(args.base, args.FQDN)
-        else:
-            data = list(Node.all_nodes(args.base))
-    except OSError as e:
-        print("E: {e.filename}: {e.strerror}".format(e=e), file=sys.stderr)
-        sys.exit(1)
-    else:
-        yaml.safe_dump(data, sys.stdout, explicit_start=True)
-
-if __name__ == "__main__":
-    main()
