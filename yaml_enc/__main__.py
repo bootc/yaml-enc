@@ -47,6 +47,9 @@ def main():
     except OSError as e:
         print("E: {e.filename}: {e.strerror}".format(e=e), file=sys.stderr)
         sys.exit(1)
+    except ValueError as e:
+        print("E: {e}".format(e=e), file=sys.stderr)
+        sys.exit(1)
     else:
         yaml.safe_dump(data, sys.stdout, explicit_start=True)
 

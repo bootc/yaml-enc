@@ -16,7 +16,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import os
-import sys
 import yaml
 import yaml_enc
 
@@ -70,9 +69,8 @@ class Node(object):
 
         # We can only cope with dicts in the YAML
         if not isinstance(data, dict):
-            print("E: {path}: YAML document must have a mapping at its top "
-                  "level".format(path=path_yaml), file=sys.stderr)
-            sys.exit(1)
+            raise ValueError("{path}: YAML document must have a mapping at "
+                             "its top level".format(path=path_yaml))
 
         # Add the included classes
         classes = data.get('classes', {})
