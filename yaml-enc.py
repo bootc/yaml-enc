@@ -30,19 +30,18 @@ NODES_SUBDIR = 'nodes'
 
 
 class Node(object):
-    def __init__(self, base_dir, fqdn, classes={}, parameters={},
-                 environment=None):
+    def __init__(self, fqdn=None, classes={}, parameters={}, environment=None):
         super(Node, self).__init__()
-        self.base_dir = base_dir
         self.fqdn = fqdn
-        self.classes = ChainMap(classes)
-        self.parameters = ChainMap(parameters)
+        self.classes = classes
+        self.parameters = parameters
         self.environment = environment
 
     @classmethod
     def from_yaml(cls, base_dir, fqdn, Loader=yaml.SafeLoader):
-        node = cls(base_dir, fqdn)
-        node.merge_yaml(os.path.join(NODES_SUBDIR, fqdn), Loader=Loader)
+        node = cls._from_yaml_include(
+            base_dir, os.path.join(NODES_SUBDIR, fqdn), Loader)
+        node.fqdn = fqdn
         return node
 
     @classmethod
@@ -56,9 +55,10 @@ class Node(object):
             # Break out of the walk; we only want to walk the nodes_dir
             break
 
-    def merge_yaml(self, path, Loader=yaml.SafeLoader):
+    @classmethod
+    def _from_yaml_include(cls, base_dir, include, Loader):
         # Construct the path to the YAML file
-        path_yaml = os.path.join(self.base_dir, path + '.yaml')
+        path_yaml = os.path.join(base_dir, include + '.yaml')
 
         # Read the YAML data
         with open(path_yaml, 'r') as fd:
@@ -68,9 +68,11 @@ class Node(object):
             finally:
                 loader.dispose()
 
+        node = cls()
+
         # Handle empty node definitions gracefully
         if data is None:
-            return
+            return node
 
         # We can only cope with dicts in the YAML
         if not isinstance(data, dict):
@@ -79,27 +81,16 @@ class Node(object):
             sys.exit(1)
 
         # Add the included classes
-        try:
-            classes = data['classes']
-        except KeyError:
-            pass
-        else:
-            if isinstance(classes, list):
-                classes = dict.fromkeys(classes)
-            self.classes.maps.append(classes)
+        classes = data.get('classes', {})
+        if isinstance(classes, list):
+            classes = dict.fromkeys(classes)
+        node.classes = classes
 
         # Add the included parameters
-        try:
-            self.parameters.maps.append(data['parameters'])
-        except KeyError:
-            pass
+        node.parameters = data.get('parameters', {})
 
         # Set the environment
-        try:
-            if self.environment is None:
-                self.environment = data['environment']
-        except KeyError:
-            pass
+        node.environment = data.get('environment')
 
         # Handle any :include directives
         try:
@@ -109,10 +100,18 @@ class Node(object):
         else:
             # The :include value could be a string or a list
             if isinstance(includes, str):
-                self.merge_yaml(includes)
-            else:
-                for inc in includes:
-                    self.merge_yaml(inc)
+                includes = [includes]
+
+            nodes = [node]
+            nodes.extend(cls._from_yaml_include(base_dir, inc, Loader)
+                         for inc in includes)
+
+            node.classes = ChainMap(*[x.classes for x in nodes])
+            node.parameters = ChainMap(*[x.parameters for x in nodes])
+            node.environment = next((x.environment for x in nodes if
+                                     x.environment is not None), None)
+
+        return node
 
     def _flatten(self):
         flattened = OrderedDict(name=self.fqdn)
