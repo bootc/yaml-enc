@@ -24,21 +24,7 @@ import yaml_enc
 from .node import Node
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='YAML-based Puppet External Node Classifier (ENC)')
-    parser.add_argument('FQDN', nargs='?',
-                        help='hostname of the node to classify')
-    parser.add_argument('--base', '-b', default=yaml_enc.DEFAULT_DIR,
-                        help='base directory for node YAML files')
-    args = parser.parse_args()
-
-    # Check that the base directory exists and is a directory
-    if not os.path.isdir(args.base):
-        print("E: {} does not exist or is not a directory".format(args.base),
-              file=sys.stderr)
-        sys.exit(1)
-
+def classify_mode(args):
     try:
         if args.FQDN is not None:
             data = Node.from_yaml(args.base, args.FQDN)
@@ -52,6 +38,66 @@ def main():
         sys.exit(1)
     else:
         yaml.safe_dump(data, sys.stdout, explicit_start=True)
+
+
+def import_mode(args):
+    # Read node definitions from stdin
+    data = yaml.safe_load(stream=sys.stdin)
+
+    if not isinstance(data, list):
+        print("E: input YAML document is not a list", file=sys.stderr)
+        sys.exit(1)
+
+    for nodeinfo in data:
+        if 'name' not in nodeinfo:
+            print("E: expected node information to contain a 'name' field",
+                  file=sys.stderr)
+            sys.exit(1)
+
+        # If we were given an FQDN on the command-line and it doesn't match the
+        # name of the node in the YAML, skip it
+        if args.FQDN is not None and nodeinfo['name'] != args.FQDN:
+            continue
+
+        node = Node(
+            classes=nodeinfo.get('classes', {}),
+            parameters=nodeinfo.get('parameters', {}),
+            environment=nodeinfo.get('environment', None))
+
+        path = os.path.join(args.base, yaml_enc.NODES_SUBDIR,
+                            nodeinfo['name'] + '.yaml')
+
+        with open(path, 'w') as fd:
+            yaml.safe_dump(node, fd, explicit_start=True,
+                           default_flow_style=False)
+
+
+PROGRAM_MODES = {
+    'classify': classify_mode,
+    'import': import_mode,
+}
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='YAML-based Puppet External Node Classifier (ENC)')
+    parser.add_argument('FQDN', nargs='?',
+                        help='hostname of the node to classify')
+    parser.add_argument('--base', '-b', default=yaml_enc.DEFAULT_DIR,
+                        help='base directory for node YAML files')
+    parser.add_argument('--mode', default='classify',
+                        choices=PROGRAM_MODES.keys(),
+                        help='mode of operation; default: %(default)s')
+    args = parser.parse_args()
+
+    # Check that the base directory exists and is a directory
+    if not os.path.isdir(args.base):
+        print("E: {} does not exist or is not a directory".format(args.base),
+              file=sys.stderr)
+        sys.exit(1)
+
+    # Run the function for the requested program mode
+    PROGRAM_MODES[args.mode](args)
 
 if __name__ == "__main__":
     main()
