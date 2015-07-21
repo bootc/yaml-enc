@@ -106,7 +106,10 @@ class Node(object):
         return node
 
     def _flatten(self):
-        flattened = OrderedDict(name=self.fqdn)
+        flattened = OrderedDict()
+
+        if self.fqdn:
+            flattened['name'] = self.fqdn
 
         if not any(self.classes.values()):
             # If none of our classes have any arguments, use a list instead
