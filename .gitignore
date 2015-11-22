@@ -3,3 +3,8 @@
 
 # Vim swap files
 .*.swp
+
+# Distutils / Setuptools artifacts
+/build/
+/dist/
+/yaml_enc.egg-info/

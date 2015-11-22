@@ -15,14 +15,5 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from .node import Node  # noqa
-
-DEFAULT_DIRS = [
-    '/etc/puppetlabs/code/yaml-enc',
-    '/etc/puppetlabs/puppet/yaml-enc',
-    '/etc/puppet/yaml-enc',
-]
-NODES_SUBDIR = 'nodes'
-
-# Import this last so the circular dependency doesn't cause us trouble
-from .__main__ import main  # noqa
+# This should be the only line in this file.
+__version__ = '0.0.1-dev1'
