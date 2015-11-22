@@ -17,5 +17,9 @@
 
 from .node import Node  # noqa
 
-DEFAULT_DIR = '/etc/puppet/yaml-enc'
+DEFAULT_DIRS = [
+    '/etc/puppetlabs/code/yaml-enc',
+    '/etc/puppetlabs/puppet/yaml-enc',
+    '/etc/puppet/yaml-enc',
+]
 NODES_SUBDIR = 'nodes'

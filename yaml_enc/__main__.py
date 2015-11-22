@@ -79,16 +79,29 @@ PROGRAM_MODES = {
 
 
 def main():
+    default_dir = None
+    for d in yaml_enc.DEFAULT_DIRS:
+        if os.path.isdir(d):
+            default_dir = d
+            break
+
     parser = argparse.ArgumentParser(
         description='YAML-based Puppet External Node Classifier (ENC)')
     parser.add_argument('FQDN', nargs='?',
                         help='hostname of the node to classify')
-    parser.add_argument('--base', '-b', default=yaml_enc.DEFAULT_DIR,
+    parser.add_argument('--base', '-b', default=default_dir,
                         help='base directory for node YAML files')
     parser.add_argument('--mode', default='classify',
                         choices=PROGRAM_MODES.keys(),
                         help='mode of operation; default: %(default)s')
     args = parser.parse_args()
+
+    # Check that the base directory isn't None (could happen if we couldn't
+    # find a default directory and the user didn't specify one)
+    if args.base is None:
+        print("E: cannot find a base directory and none given",
+              file=sys.stderr)
+        sys.exit(1)
 
     # Check that the base directory exists and is a directory
     if not os.path.isdir(args.base):
