@@ -73,10 +73,7 @@ class Node(object):
                              "its top level".format(path=path_yaml))
 
         # Add the included classes
-        classes = data.get('classes', {})
-        if isinstance(classes, list):
-            classes = dict.fromkeys(classes)
-        node.classes = classes
+        node.classes = data.get('classes', {})
 
         # Add the included parameters
         node.parameters = data.get('parameters', {})
@@ -104,6 +101,18 @@ class Node(object):
                                      x.environment is not None), None)
 
         return node
+
+    @property
+    def classes(self):
+        return self._classes
+
+    @classes.setter
+    def classes(self, value):
+        # If we are given an array, convert it to a dict.
+        if isinstance(value, list):
+            value = dict.fromkeys(value)
+
+        self._classes = value
 
     def _flatten(self):
         flattened = OrderedDict()
