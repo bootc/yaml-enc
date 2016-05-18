@@ -41,14 +41,20 @@ def classify_mode(args):
 
 
 def import_mode(args):
+    nodes = []
+
     # Read node definitions from stdin
-    data = yaml.safe_load(stream=sys.stdin)
+    for data in yaml.safe_load_all(stream=sys.stdin):
+        if isinstance(data, dict):
+            nodes.append(data)
+        elif isinstance(data, list):
+            nodes.extend(data)
+        else:
+            print("E: input YAML document is not a list or a dict",
+                  file=sys.stderr)
+            sys.exit(1)
 
-    if not isinstance(data, list):
-        print("E: input YAML document is not a list", file=sys.stderr)
-        sys.exit(1)
-
-    for nodeinfo in data:
+    for nodeinfo in nodes:
         if 'name' not in nodeinfo:
             print("E: expected node information to contain a 'name' field",
                   file=sys.stderr)
